@@ -1,5 +1,6 @@
 #include <iostream>
 #include <array>
+#include <vector>
 
 // size of memory
 constexpr uint16_t mem_size = 4096;
@@ -18,9 +19,16 @@ constexpr uint16_t font_start = 0x050;
 struct chip8
 {
     std::array <uint8_t, mem_size> memory;
+    uint16_t pc;
+    uint16_t index;
+    std::vector <uint16_t> stack;
+    uint8_t delay;
+    uint8_t sound;
+    std::array <uint8_t, 16> reg;
 };
 
 void initialize(chip8& Chip8);
+void loop(chip8& Chip8);
 
 const std::array <uint8_t, font_size> font = {
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -45,18 +53,27 @@ int main(){
 
     chip8 Chip8;
     initialize(Chip8);
+    loop(Chip8);
     
 }
 
 // intializes chip 8
 void initialize(chip8& Chip8){
     // set all mem to 0
-    for (std::size_t i=0; i < Chip8.memory.size(); i++){
-        Chip8.memory[i] = 0x00;
-    }
+    std::fill(Chip8.memory.begin(), Chip8.memory.end(), 0x00);
     // store font in font address
-    for (std::size_t i=0; i < font.size();i++){
-        Chip8.memory[font_start + i] = font[i];
-    }
+    std::copy(font[0], font[font_size - 1], Chip8.memory[font_start]);
+    // set PC to 0x200
+    Chip8.pc = mem_start;
+    // set index reg to 0
+    Chip8.index = 0;
+}
+
+// loops through fetch, decode and execute
+void loop(chip8& Chip8){
+    // fetch instruction
+    uint16_t cur_instruct = Chip8.memory[Chip8.pc] + Chip8.memory[Chip8.pc + 1];
+    Chip8.pc += 2;
+    // decode instruction
     
 }
