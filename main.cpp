@@ -64,7 +64,7 @@ void initialize(chip8& Chip8){
     // set all mem to 0
     std::fill(Chip8.memory.begin(), Chip8.memory.end(), 0x00);
     // store font in font address
-    std::copy(font[0], font[font_size - 1], Chip8.memory[font_start]);
+    std::copy(font.begin(), font.end(), Chip8.memory.begin() + font_start);
     // set PC to 0x200
     Chip8.pc = mem_start;
     // set index reg to 0
@@ -74,7 +74,7 @@ void initialize(chip8& Chip8){
 // loops through fetch, decode and execute
 void loop(chip8& Chip8){
     // fetch instruction
-    uint16_t cur_instruct = Chip8.memory[Chip8.pc] + Chip8.memory[Chip8.pc + 1];
+    uint16_t cur_instruct = (Chip8.memory[Chip8.pc] << 8) | Chip8.memory[Chip8.pc + 1];
     Chip8.pc += 2;
     // decode instruction
     decode(Chip8, cur_instruct);
@@ -96,15 +96,27 @@ void decode(chip8& Chip8, uint16_t cur_instruct){
     uint8_t vx = Chip8.reg[x];
     uint8_t vy = Chip8.reg[y];
     switch(first_nibble){
-        case('0x0D'):
+        case(0x0D):
             // get x and y coordinates from vx and vy respectively
             uint8_t x_cor = vx % 64;
             uint8_t y_cor = vy % 32;
             // set vf to 0
             Chip8.reg[15] = 0;
             for (int i = 0; i < n; i++){
-                Chip8.memory[Chip8.index + i];
+                uint8_t row = Chip8.memory[Chip8.index + i];
+                uint8_t dest_y = (vy + i) % 32;
+                for (int b=0; b < 7 ; b++){
+                    bool bit = (row >> (7 - b) & 1);
+                    uint8_t dest_x = (vx + b) % 64;
+                    uint8_t old_buffer = Chip8.disp_buffer[dest_x][dest_y];
+                    uint8_t new_buffer = old_buffer ^ 1;
+                    if ( old_buffer == 1 && b == 1){
+                        Chip8.reg[15] = 1;
+                    }
+                    Chip8.disp_buffer[dest_x][dest_y] = new_buffer;
+                }
             }
+            break;
         others:
 
     }
