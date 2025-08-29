@@ -96,6 +96,102 @@ void decode(chip8& Chip8, uint16_t cur_instruct){
     uint8_t vx = Chip8.reg[x];
     uint8_t vy = Chip8.reg[y];
     switch(first_nibble){
+        case(0x00):
+            if (cur_instruct == 0x00E0) {
+                std::fill(&Chip8.disp_buffer[0][0], &Chip8.disp_buffer[63][31], 0x0);
+            }
+            if (cur_instruct == 0x00EE){
+                Chip8.pc = Chip8.stack.back();
+                Chip8.stack.pop_back();
+            }
+            break;
+        case(0x01):
+            // 1NNN
+            Chip8.pc = nnn;
+            break;
+        case(0x02):
+            // 2NNN
+            Chip8.stack.push_back(Chip8.pc);
+            Chip8.pc = nnn;
+            break;
+        case(0x03):
+            // 3XNN
+            if (vx == nn){
+                Chip8.pc += 2;
+            }
+            break;
+        case(0x04):
+            // 4XNN
+            if (vx != nn){
+                Chip8.pc += 2;
+            }
+            break;
+        case(0x05):
+            // 5XY0
+            if (vx == vy){
+                Chip8.pc += 2;
+            }
+            break;
+        case(0x06):
+            // 6XNN
+            vx = nn;
+            break;
+        case(0x07):
+            // 7XNN
+            vx += nn;
+            break;
+        case(0x08):
+            // look at last nibble
+            switch(n){
+                case(0):
+                    vx = vy;
+                    break;
+                case(1):
+                    vx |= vy;
+                    break;
+                case(2):
+                    vx &= vy;
+                    break;
+                case(3):
+                    vx ^= vy;
+                    break;
+                case(4):
+                    vx += vy;
+                    // check for overflow
+                    // if overflow set vf to 1
+                    if (vx > 255){
+                        Chip8.reg[15] = 1;
+                    }else{
+                        Chip8.reg[15] = 0;
+                    }
+                    break;
+                case(5):
+                    vx = vx - vy;
+                    // if first operand is larger than second
+                    // set vf to 1
+                    if (vx > vy){
+                        Chip8.reg[15] = 1;
+                    } else{
+                        Chip8.reg[15] = 0;
+                    }
+                    break;
+                case(7):
+                    vx = vy - vx;
+                    // if first operand is larger than second
+                    // set vf to 1
+                    if (vy > vx){
+                        Chip8.reg[15] = 1;
+                    } else{
+                        Chip8.reg[15] = 0;
+                    }
+                    break;
+            }
+        case(0x09):
+            // 9XY0
+            if (vx != vy){
+                Chip8.pc += 2;
+            }
+            break;
         case(0x0D):
             // get x and y coordinates from vx and vy respectively
             uint8_t x_cor = vx % 64;
