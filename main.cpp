@@ -25,10 +25,12 @@ struct chip8
     uint8_t delay;
     uint8_t sound;
     std::array <uint8_t, 16> reg;
+    uint8_t disp_buffer[64][32];
 };
 
 void initialize(chip8& Chip8);
 void loop(chip8& Chip8);
+void decode(chip8& Chip8, uint16_t cur_instruct);
 
 const std::array <uint8_t, font_size> font = {
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -75,5 +77,35 @@ void loop(chip8& Chip8){
     uint16_t cur_instruct = Chip8.memory[Chip8.pc] + Chip8.memory[Chip8.pc + 1];
     Chip8.pc += 2;
     // decode instruction
-    
+    decode(Chip8, cur_instruct);
+}
+
+// decoding instructions
+void decode(chip8& Chip8, uint16_t cur_instruct){
+    // extract first nibble(top 4 bits)
+    uint8_t first_nibble = (cur_instruct >> 12) & 0x0F; 
+    // extract second, third and fourth nibble
+    uint8_t x = (cur_instruct >> 8) & 0x0F;
+    uint8_t y = (cur_instruct >> 4) & 0x0F;
+    uint8_t n = (cur_instruct) & 0x0F;
+    // form an 8 bit immediate from the third and fourth nibbles
+    uint8_t nn = (y << 4) | n;
+    // form a 12 bit immediate from the second, third and fourth nibbles
+    uint16_t nnn = (x << 8) | (y << 4) | n;
+    // get vx and vy register from the second and third nibbles
+    uint8_t vx = Chip8.reg[x];
+    uint8_t vy = Chip8.reg[y];
+    switch(first_nibble){
+        case('0x0D'):
+            // get x and y coordinates from vx and vy respectively
+            uint8_t x_cor = vx % 64;
+            uint8_t y_cor = vy % 32;
+            // set vf to 0
+            Chip8.reg[15] = 0;
+            for (int i = 0; i < n; i++){
+                Chip8.memory[Chip8.index + i];
+            }
+        others:
+
+    }
 }
