@@ -1,6 +1,8 @@
 #include <iostream>
 #include <array>
 #include <vector>
+#include <cstdlib>
+#include <ctime>
 
 // size of memory
 constexpr uint16_t mem_size = 4096;
@@ -175,6 +177,12 @@ void decode(chip8& Chip8, uint16_t cur_instruct){
                         Chip8.reg[15] = 0;
                     }
                     break;
+                case(6):
+                    vx = vy;
+                    // set vf flag to bit shifted out
+                    Chip8.reg[15] = vx && 0x01;
+                    vx = vx >> 1;
+                    break;
                 case(7):
                     vx = vy - vx;
                     // if first operand is larger than second
@@ -185,12 +193,30 @@ void decode(chip8& Chip8, uint16_t cur_instruct){
                         Chip8.reg[15] = 0;
                     }
                     break;
+                case(0xE):
+                    vx = vy;
+                    // set vf flag to bit shifted out
+                    Chip8.reg[15] = vx && 0x80;
+                    vx = vx << 1;
+                    break;
             }
         case(0x09):
             // 9XY0
             if (vx != vy){
                 Chip8.pc += 2;
             }
+            break;
+        case(0x0A):
+            Chip8.index = nnn;
+            break;
+        case(0x0B):
+            Chip8.pc = nnn + Chip8.reg[0];
+            break;
+        case(0x0C):
+            srand(time(nullptr));
+            // generates a random value between 0 and 244
+            uint8_t random = rand() % 255;
+            vx = random & nn;
             break;
         case(0x0D):
             // get x and y coordinates from vx and vy respectively
