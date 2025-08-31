@@ -28,6 +28,7 @@ struct chip8
     uint8_t sound;
     std::array <uint8_t, 16> reg;
     uint8_t disp_buffer[64][32];
+    std::array<bool, 16> keys;
 };
 
 void initialize(chip8& Chip8);
@@ -63,8 +64,12 @@ int main(){
 
 // intializes chip 8
 void initialize(chip8& Chip8){
-    // set all mem to 0
+    // set all mem, reg, disp_buffer, delay and sound to 0
     std::fill(Chip8.memory.begin(), Chip8.memory.end(), 0x00);
+    std::fill(Chip8.reg.begin(),Chip8.reg.end(),0x0);
+    std::fill(&Chip8.disp_buffer[0][0], &Chip8.disp_buffer[63][21], 0x0);
+    Chip8.delay = 0x0;
+    Chip8.sound = 0x0;
     // store font in font address
     std::copy(font.begin(), font.end(), Chip8.memory.begin() + font_start);
     // set PC to 0x200
@@ -237,6 +242,22 @@ void decode(chip8& Chip8, uint16_t cur_instruct){
                     }
                     Chip8.disp_buffer[dest_x][dest_y] = new_buffer;
                 }
+            }
+            break;
+        case(0x0E):
+            
+            break;
+        case(0x0F):
+            switch(n){
+                case(7):
+                    vx = Chip8.delay;
+                    break;
+                case(15):
+                    Chip8.delay = vx;
+                    break;
+                case(18):
+                    Chip8.sound = vx;
+                    break;
             }
             break;
         others:
