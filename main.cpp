@@ -245,18 +245,45 @@ void decode(chip8& Chip8, uint16_t cur_instruct){
             }
             break;
         case(0x0E):
-            
+            switch (n)
+            {
+            case(0xE):
+                // EX9E - skip one instruction
+                // if key corresponding to vx is pressed
+                if (Chip8.keys[vx]){
+                    Chip8.pc += 2;
+                }
+                break;
+            case(0x1):
+                // EXA1 - skip one instruction
+                // if key corresponding to vx is not pressed
+                if (!Chip8.keys[vx]){
+                    Chip8.pc += 2;
+                }
+                break;
+            default:
+                break;
+            }
             break;
         case(0x0F):
-            switch(n){
-                case(7):
+            switch(nn){
+                case(0x07):
                     vx = Chip8.delay;
                     break;
-                case(15):
+                case(0x15):
                     Chip8.delay = vx;
                     break;
-                case(18):
+                case(0x18):
                     Chip8.sound = vx;
+                    break;
+                case(0x1E):
+                    Chip8.index += vx;
+                    // set vf to 1 if overflows
+                    if (Chip8.index >= 255){
+                        Chip8.reg[15] = 1;
+                    }
+                    break;
+                case(0x0A):
                     break;
             }
             break;
