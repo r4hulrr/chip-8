@@ -284,6 +284,77 @@ void decode(chip8& Chip8, uint16_t cur_instruct){
                     }
                     break;
                 case(0x0A):
+                    if(Chip8.keys[0]){
+                        vx = 0x0;
+                    }else if (Chip8.keys[1])
+                    {
+                        vx = 0x1;
+                    }else if(Chip8.keys[2])
+                    {
+                        vx = 0x2;
+                    }else if(Chip8.keys[3])
+                    {
+                        vx = 0x3;
+                    }else if(Chip8.keys[4])
+                    {
+                        vx = 0x4;
+                    }else if(Chip8.keys[5])
+                    {
+                        vx = 0x5;
+                    }else if(Chip8.keys[6])
+                    {
+                        vx = 0x6;
+                    }else if(Chip8.keys[7])
+                    {
+                        vx = 0x7;
+                    }else if(Chip8.keys[8])
+                    {
+                        vx = 0x8;
+                    }else if (Chip8.keys[9])
+                    {
+                        vx = 0x9;
+                    }else if(Chip8.keys[10])
+                    {
+                        vx = 0xA;
+                    }else if(Chip8.keys[11])
+                    {
+                        vx = 0xB;
+                    }else if(Chip8.keys[12])
+                    {
+                        vx = 0xC;
+                    }else if(Chip8.keys[13])
+                    {
+                        vx = 0xD;
+                    }else if(Chip8.keys[14])
+                    {
+                        vx = 0xE;
+                    }else if(Chip8.keys[15])
+                    {
+                        vx = 0xF;
+                    }else{
+                        Chip8.pc -= 2;
+                    }
+                    break;
+                case(0x29):
+                    Chip8.index = font_start + 5*Chip8.reg[vx];
+                    break;
+                case(0x33):
+                    uint8_t num = vx;
+                    Chip8.memory[Chip8.index + 2] = num %10;
+                    num /= 10;
+                    Chip8.memory[Chip8.index + 1] = num %10;
+                    num /= 10;
+                    Chip8.memory[Chip8.index ] = num %10;
+                    break;
+                case(0x55):
+                    for (int i=0; i <= vx; i++){
+                        Chip8.memory[Chip8.index + i] = Chip8.reg[i];
+                    }
+                    break;
+                case(0x65):
+                    for (int i=0; i <= vx; i++){
+                        Chip8.reg[i] = Chip8.memory[Chip8.index + i]; 
+                    }
                     break;
             }
             break;
