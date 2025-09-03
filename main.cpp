@@ -3,6 +3,7 @@
 #include <vector>
 #include <cstdlib>
 #include <ctime>
+#include <fstream>
 
 // size of memory
 constexpr uint16_t mem_size = 4096;
@@ -54,11 +55,13 @@ const std::array <uint8_t, font_size> font = {
     0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 };
 
-int main(){
+int main(int argc, char* argv[]){
 
     chip8 Chip8;
     initialize(Chip8);
+    
     loop(Chip8);
+    
     
 }
 
@@ -67,7 +70,8 @@ void initialize(chip8& Chip8){
     // set all mem, reg, disp_buffer, delay and sound to 0
     std::fill(Chip8.memory.begin(), Chip8.memory.end(), 0x00);
     std::fill(Chip8.reg.begin(),Chip8.reg.end(),0x0);
-    std::fill(&Chip8.disp_buffer[0][0], &Chip8.disp_buffer[63][21], 0x0);
+    std::fill(&Chip8.disp_buffer[0][0], &Chip8.disp_buffer[63][31], 0x0);
+    std::fill(Chip8.keys.begin(),Chip8.keys.end(), 0);
     Chip8.delay = 0x0;
     Chip8.sound = 0x0;
     // store font in font address
@@ -76,6 +80,8 @@ void initialize(chip8& Chip8){
     Chip8.pc = mem_start;
     // set index reg to 0
     Chip8.index = 0;
+    // seed to randomize
+    srand(time(nullptr));
 }
 
 // loops through fetch, decode and execute
@@ -100,16 +106,18 @@ void decode(chip8& Chip8, uint16_t cur_instruct){
     // form a 12 bit immediate from the second, third and fourth nibbles
     uint16_t nnn = (x << 8) | (y << 4) | n;
     // get vx and vy register from the second and third nibbles
-    uint8_t vx = Chip8.reg[x];
-    uint8_t vy = Chip8.reg[y];
+    auto& vx = Chip8.reg[x];
+    auto& vy = Chip8.reg[y];
     switch(first_nibble){
         case(0x00):
             if (cur_instruct == 0x00E0) {
-                std::fill(&Chip8.disp_buffer[0][0], &Chip8.disp_buffer[63][31], 0x0);
+                std::fill(&Chip8.disp_buffer[0][0], &Chip8.disp_buffer[0][0] + 64*32, 0x0);
             }
             if (cur_instruct == 0x00EE){
-                Chip8.pc = Chip8.stack.back();
-                Chip8.stack.pop_back();
+                if (Chip8.stack.size() != 0){
+                    Chip8.pc = Chip8.stack.back();
+                    Chip8.stack.pop_back();
+                }
             }
             break;
         case(0x01):
@@ -163,17 +171,18 @@ void decode(chip8& Chip8, uint16_t cur_instruct){
                     vx ^= vy;
                     break;
                 case(4):
-                    vx += vy;
+                    // larger temp to check for overflow
+                    uint16_t sum = vx + vy;
+                    vx = (uint8_t)sum;
                     // check for overflow
                     // if overflow set vf to 1
-                    if (vx > 255){
+                    if (sum > 255){
                         Chip8.reg[15] = 1;
                     }else{
                         Chip8.reg[15] = 0;
                     }
                     break;
                 case(5):
-                    vx = vx - vy;
                     // if first operand is larger than second
                     // set vf to 1
                     if (vx > vy){
@@ -181,15 +190,15 @@ void decode(chip8& Chip8, uint16_t cur_instruct){
                     } else{
                         Chip8.reg[15] = 0;
                     }
+                    vx = vx - vy;
                     break;
                 case(6):
                     vx = vy;
                     // set vf flag to bit shifted out
-                    Chip8.reg[15] = vx && 0x01;
+                    Chip8.reg[15] = vx & 0x01;
                     vx = vx >> 1;
                     break;
                 case(7):
-                    vx = vy - vx;
                     // if first operand is larger than second
                     // set vf to 1
                     if (vy > vx){
@@ -197,13 +206,15 @@ void decode(chip8& Chip8, uint16_t cur_instruct){
                     } else{
                         Chip8.reg[15] = 0;
                     }
+                    vx = vy - vx;
                     break;
                 case(0xE):
                     vx = vy;
                     // set vf flag to bit shifted out
-                    Chip8.reg[15] = vx && 0x80;
+                    Chip8.reg[15] = vx & 0x80;
                     vx = vx << 1;
                     break;
+            break;
             }
         case(0x09):
             // 9XY0
@@ -218,8 +229,7 @@ void decode(chip8& Chip8, uint16_t cur_instruct){
             Chip8.pc = nnn + Chip8.reg[0];
             break;
         case(0x0C):
-            srand(time(nullptr));
-            // generates a random value between 0 and 244
+            // generates a random value between 0 and 254
             uint8_t random = rand() % 255;
             vx = random & nn;
             break;
@@ -232,12 +242,13 @@ void decode(chip8& Chip8, uint16_t cur_instruct){
             for (int i = 0; i < n; i++){
                 uint8_t row = Chip8.memory[Chip8.index + i];
                 uint8_t dest_y = (vy + i) % 32;
-                for (int b=0; b < 7 ; b++){
+                for (int b=0; b < 8 ; b++){
                     bool bit = (row >> (7 - b) & 1);
                     uint8_t dest_x = (vx + b) % 64;
                     uint8_t old_buffer = Chip8.disp_buffer[dest_x][dest_y];
-                    uint8_t new_buffer = old_buffer ^ 1;
-                    if ( old_buffer == 1 && b == 1){
+                    uint8_t new_buffer = old_buffer ^ bit;
+                    if ( old_buffer == 1 && bit == 1){
+                        // set vf = 1
                         Chip8.reg[15] = 1;
                     }
                     Chip8.disp_buffer[dest_x][dest_y] = new_buffer;
@@ -277,9 +288,11 @@ void decode(chip8& Chip8, uint16_t cur_instruct){
                     Chip8.sound = vx;
                     break;
                 case(0x1E):
+                    // larger temp to check for overflow
+                    uint16_t sum_index_vx = Chip8.index + vx;
                     Chip8.index += vx;
                     // set vf to 1 if overflows
-                    if (Chip8.index >= 255){
+                    if (sum_index_vx >= 255){
                         Chip8.reg[15] = 1;
                     }
                     break;
@@ -336,7 +349,7 @@ void decode(chip8& Chip8, uint16_t cur_instruct){
                     }
                     break;
                 case(0x29):
-                    Chip8.index = font_start + 5*Chip8.reg[vx];
+                    Chip8.index = font_start + 5*vx;
                     break;
                 case(0x33):
                     uint8_t num = vx;
@@ -347,18 +360,18 @@ void decode(chip8& Chip8, uint16_t cur_instruct){
                     Chip8.memory[Chip8.index ] = num %10;
                     break;
                 case(0x55):
-                    for (int i=0; i <= vx; i++){
+                    for (int i=0; i <= x; i++){
                         Chip8.memory[Chip8.index + i] = Chip8.reg[i];
                     }
                     break;
                 case(0x65):
-                    for (int i=0; i <= vx; i++){
+                    for (int i=0; i <= x; i++){
                         Chip8.reg[i] = Chip8.memory[Chip8.index + i]; 
                     }
                     break;
             }
             break;
-        others:
-
+        default:
+            throw std::runtime_error("Invalid opcode");
     }
 }
